@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Banknote } from 'lucide-react';
+import { X, Banknote, AlertCircle } from 'lucide-react';
 
 interface OpeningModalProps {
   onOpenRegister: (amount: string, note: string) => void;
   onDiscard: () => void;
+  error?: string;
 }
 
-const OpeningModal: React.FC<OpeningModalProps> = ({ onOpenRegister, onDiscard }) => {
+const OpeningModal: React.FC<OpeningModalProps> = ({ onOpenRegister, onDiscard, error }) => {
   const [amount, setAmount] = useState('0,00');
   const [note, setNote] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +28,14 @@ const OpeningModal: React.FC<OpeningModalProps> = ({ onOpenRegister, onDiscard }
 
       {/* Body */}
       <div className="p-6 space-y-6">
+        
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded flex items-start gap-2 text-red-700 text-sm">
+            <AlertCircle size={18} className="shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
         
         {/* Amount Field */}
         <div className="space-y-2">

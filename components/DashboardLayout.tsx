@@ -1,10 +1,8 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   PlusCircle, 
-  Barcode, 
-  AlignJustify,
   Home,
   ShoppingCart,
   Delete,
@@ -20,8 +18,13 @@ import {
   Check,
   Settings,
   Upload,
-  Image as ImageIcon
+  LogOut,
+  AlertCircle
 } from 'lucide-react';
+import { useAuth } from '../src/contexts/AuthContext';
+import { inventoryService } from '../src/services/inventoryService';
+import { salesService } from '../src/services/salesService';
+import type { Product, CartItem } from '../src/types/database.types';
 
 interface DashboardLayoutProps {
   isBlurred?: boolean;
@@ -43,66 +46,50 @@ const CATEGORIES = [
   { id: 'hierbas', name: 'Hierbas', color: 'bg-[#ACE1AF] text-[#006400]' },
 ];
 
-const DEFAULT_PRODUCTS = [
-  { id: 1, name: 'Manzana Roja', price: 5.20, unit: 'kg', category: 'frutas', image: 'https://images.unsplash.com/photo-1570913149827-d2ac84ab3f9a?auto=format&fit=crop&w=600&q=80' },
-  { id: 2, name: 'Plátano Seda', price: 2.50, unit: 'kg', category: 'tropicales', image: 'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=600&q=80' },
-  { id: 3, name: 'Papa Amarilla', price: 3.80, unit: 'kg', category: 'tuberculos', image: 'https://images.unsplash.com/photo-1633013649620-420897578669?auto=format&fit=crop&w=600&q=80' },
-  { id: 4, name: 'Zanahoria', price: 1.90, unit: 'kg', category: 'verduras', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=600&q=80' },
-  { id: 5, name: 'Cebolla Roja', price: 2.20, unit: 'kg', category: 'bulbos', image: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=600&q=80' },
-  { id: 6, name: 'Tomate', price: 3.50, unit: 'kg', category: 'verduras', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80' },
-  { id: 7, name: 'Naranja Jugo', price: 3.00, unit: 'kg', category: 'citricos', image: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80' },
-  { id: 8, name: 'Piña Golden', price: 4.50, unit: 'un', category: 'tropicales', image: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=600&q=80' },
-  { id: 9, name: 'Perejil', price: 1.00, unit: 'un', category: 'hierbas', image: 'https://images.unsplash.com/photo-1622973536968-3ead9e780960?auto=format&fit=crop&w=600&q=80' },
-  { id: 10, name: 'Lechuga', price: 2.00, unit: 'un', category: 'hortalizas', image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&w=600&q=80' },
-  { id: 11, name: 'Camote Morado', price: 2.80, unit: 'kg', category: 'tuberculos', image: 'https://images.unsplash.com/photo-1596097635121-14b63b8a66cf?auto=format&fit=crop&w=600&q=80' },
-  { id: 12, name: 'Fresa', price: 8.00, unit: 'kg', category: 'frutales', image: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=600&q=80' },
-  { id: 13, name: 'Mandarina', price: 3.50, unit: 'kg', category: 'citricos', image: 'https://images.unsplash.com/photo-1611105637889-281587d2c9b9?auto=format&fit=crop&w=600&q=80' },
-  { id: 14, name: 'Brócoli', price: 4.20, unit: 'un', category: 'verduras', image: 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=600&q=80' },
-  { id: 15, name: 'Ajo', price: 15.00, unit: 'kg', category: 'bulbos', image: 'https://images.unsplash.com/photo-1588855933979-25d2997538eb?auto=format&fit=crop&w=600&q=80' },
-  { id: 16, name: 'Pimiento', price: 4.80, unit: 'kg', category: 'verduras', image: 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=600&q=80' },
-  { id: 17, name: 'Limón', price: 4.50, unit: 'kg', category: 'citricos', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80' },
-  { id: 18, name: 'Palta Fuerte', price: 9.50, unit: 'kg', category: 'tropicales', image: 'https://images.unsplash.com/photo-1596151782685-2214e70d280a?auto=format&fit=crop&w=600&q=80' },
-  { id: 19, name: 'Espinaca', price: 2.50, unit: 'atado', category: 'hortalizas', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=600&q=80' },
-  { id: 20, name: 'Apio', price: 3.00, unit: 'atado', category: 'hortalizas', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=600&q=80' },
-];
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  unit: string;
-  category: string;
-  image: string;
-}
-
-interface CartItem {
-  product: Product;
-  qty: number;
-}
-
 type ViewState = 'pos' | 'payment' | 'receipt' | 'backend';
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isBlurred = false }) => {
-  // Initialize products from localStorage if available, otherwise use defaults
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const savedProducts = localStorage.getItem('pos_products_v1');
-      return savedProducts ? JSON.parse(savedProducts) : DEFAULT_PRODUCTS;
-    } catch (e) {
-      return DEFAULT_PRODUCTS;
-    }
-  });
+  const { user, logout } = useAuth();
+  
+  // State para productos y carga
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState('');
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [view, setView] = useState<ViewState>('pos');
-  const [paymentMethod, setPaymentMethod] = useState('efectivo');
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'yape' | 'plin' | 'tarjeta'>('efectivo');
   const [tenderAmount, setTenderAmount] = useState('');
+  const [saleError, setSaleError] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false);
 
-  // Save products to localStorage whenever they change
+  // Cargar productos desde Supabase al montar el componente
   useEffect(() => {
-    localStorage.setItem('pos_products_v1', JSON.stringify(products));
-  }, [products]);
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoadingProducts(true);
+      setProductsError('');
+      const data = await inventoryService.getAllProducts();
+      setProducts(data);
+    } catch (error: any) {
+      console.error('Error al cargar productos:', error);
+      setProductsError(error.message || 'Error al cargar productos');
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
 
   const filteredProducts = activeCategory === 'all' 
     ? products 
@@ -139,8 +126,37 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isBlurred = false }) 
       setTenderAmount((current + amount).toString());
   };
 
-  const handleValidateSale = () => {
+  const handleValidateSale = async () => {
+    if (!user || !user.auth_user_id) {
+      setSaleError('Usuario no autenticado');
+      return;
+    }
+
+    if (cart.length === 0) {
+      setSaleError('El carrito está vacío');
+      return;
+    }
+
+    try {
+      setProcessingPayment(true);
+      setSaleError('');
+
+      // Registrar la venta en Supabase usando auth_user_id (UUID)
+      const result = await salesService.registerSale(
+        user.auth_user_id,
+        cart,
+        paymentMethod,
+        cartTotal
+      );
+
+      console.log('Venta registrada exitosamente:', result);
       setView('receipt');
+    } catch (error: any) {
+      console.error('Error al registrar venta:', error);
+      setSaleError(error.message || 'Error al procesar la venta');
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   const handleNewOrder = () => {
@@ -254,6 +270,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isBlurred = false }) 
                <span className="text-xs font-medium text-green-600">Conectado</span>
             </div>
             
+            {/* Usuario */}
+            <div className="flex items-center gap-2 pr-2 border-r border-gray-300">
+              <div className="w-7 h-7 bg-[#704559] text-white rounded flex items-center justify-center font-bold text-xs shadow-sm">
+                {user?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <span className="text-xs font-medium text-gray-700">
+                {user?.full_name || user?.email?.split('@')[0]}
+              </span>
+            </div>
+            
             <button 
               onClick={() => setView(view === 'backend' ? 'pos' : 'backend')}
               className={`p-2 rounded transition-colors ${view === 'backend' ? 'bg-[#704559] text-white shadow-md' : 'hover:bg-gray-100 hover:text-gray-800'}`}
@@ -262,11 +288,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isBlurred = false }) 
               <Settings size={20} />
             </button>
 
-            <button className="hover:text-gray-800"><Barcode size={20} /></button>
-            <div className="w-7 h-7 bg-[#A0522D] text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer hover:opacity-90 shadow-sm">
-              W
-            </div>
-            <button className="hover:text-gray-800"><AlignJustify size={20} /></button>
+            <button 
+              onClick={handleLogout}
+              className="p-2 hover:bg-red-50 hover:text-red-600 rounded transition-colors"
+              title="Cerrar Sesión"
+            >
+              <LogOut size={20} />
+            </button>
           </div>
         </div>
 
@@ -390,39 +418,69 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isBlurred = false }) 
 
                     {/* Product Grid */}
                     <div className="flex-1 overflow-y-auto p-4">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                            {filteredProducts.map(product => (
-                                <div 
-                                    key={product.id}
-                                    onClick={() => addToCart(product)}
-                                    className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer group relative flex flex-col h-[180px]"
-                                >
-                                    {/* Price Tag */}
-                                    <div className="absolute top-1 right-1 bg-green-600 text-white text-sm font-bold px-2 py-1 rounded z-20 shadow-sm">
-                                        S/. {product.price.toFixed(2)}
-                                    </div>
-                                    
-                                    {/* Image */}
-                                    <div className="absolute inset-0 w-full h-full bg-gray-100">
-                                        <img 
-                                            src={product.image} 
-                                            alt={product.name}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x300?text=Sin+Imagen';
-                                            }}
-                                        />
-                                    </div>
-                                    
-                                    {/* Name Overlay */}
-                                    <div className="absolute bottom-0 w-full bg-white/80 backdrop-blur-[1px] p-2 border-t border-gray-100/50 z-10">
-                                        <h3 className="text-lg font-bold text-gray-900 leading-tight truncate">
-                                            {product.name}
-                                        </h3>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        {loadingProducts ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#704559] mx-auto mb-4"></div>
+                              <p className="text-gray-600">Cargando productos...</p>
+                            </div>
+                          </div>
+                        ) : productsError ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center max-w-md">
+                              <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+                              <p className="text-red-600 font-semibold mb-2">Error al cargar productos</p>
+                              <p className="text-gray-600 text-sm mb-4">{productsError}</p>
+                              <button 
+                                onClick={loadProducts}
+                                className="px-4 py-2 bg-[#704559] text-white rounded hover:bg-[#5a3748]"
+                              >
+                                Reintentar
+                              </button>
+                            </div>
+                          </div>
+                        ) : filteredProducts.length === 0 ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                              <ShoppingCart size={64} className="text-gray-300 mx-auto mb-4" />
+                              <p className="text-gray-500 font-medium">No hay productos disponibles</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                              {filteredProducts.map(product => (
+                                  <div 
+                                      key={product.id}
+                                      onClick={() => addToCart(product)}
+                                      className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer group relative flex flex-col h-[180px]"
+                                  >
+                                      {/* Price Tag */}
+                                      <div className="absolute top-1 right-1 bg-green-600 text-white text-sm font-bold px-2 py-1 rounded z-20 shadow-sm">
+                                          S/. {product.price.toFixed(2)}
+                                      </div>
+                                      
+                                      {/* Image */}
+                                      <div className="absolute inset-0 w-full h-full bg-gray-100">
+                                          <img 
+                                              src={product.image} 
+                                              alt={product.name}
+                                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                              onError={(e) => {
+                                                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+                                              }}
+                                          />
+                                      </div>
+                                      
+                                      {/* Name Overlay */}
+                                      <div className="absolute bottom-0 w-full bg-white/80 backdrop-blur-[1px] p-2 border-t border-gray-100/50 z-10">
+                                          <h3 className="text-lg font-bold text-gray-900 leading-tight truncate">
+                                              {product.name}
+                                          </h3>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                        )}
                     </div>
                 </div>
             </>
@@ -480,6 +538,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isBlurred = false }) 
                         <div className="text-[64px] font-bold text-gray-700 tracking-tight leading-none mb-12">
                             S/ <span className="text-gray-800">{cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
+                        
+                        {/* Error Message */}
+                        {saleError && (
+                          <div className="w-full max-w-3xl mb-4 p-3 bg-red-50 border border-red-200 rounded flex items-start gap-2 text-red-700 text-sm">
+                            <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                            <span>{saleError}</span>
+                          </div>
+                        )}
                         
                         {/* Payment Lines Container */}
                         <div className="w-full max-w-3xl space-y-4">
@@ -575,10 +641,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isBlurred = false }) 
                             </button>
                             <button 
                                 onClick={handleValidateSale}
-                                className="flex-[2] bg-[#704559] text-white font-bold rounded shadow-md hover:bg-[#5a3748] flex items-center justify-center gap-2"
+                                disabled={processingPayment}
+                                className="flex-[2] bg-[#704559] text-white font-bold rounded shadow-md hover:bg-[#5a3748] disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                <CheckCircle size={20} />
-                                Validar
+                                {processingPayment ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    Procesando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle size={20} />
+                                    Validar
+                                  </>
+                                )}
                             </button>
                         </div>
 
